@@ -1,33 +1,25 @@
-const STORAGE_KEY = 'circuit-flow-workouts-v1';
-
-const defaultWorkout = {
-  id: crypto.randomUUID(),
-  name: 'Starter Workout',
-  groups: [
-    {
-      name: 'Upper Body',
-      rounds: 3,
-      stations: [
-        { name: 'Push-ups', seconds: 45, restSeconds: 20 },
-        { name: 'Rows', seconds: 45, restSeconds: 20 },
-        { name: 'Plank Hold', seconds: 35, restSeconds: 30 },
-      ],
-    },
-    {
-      name: 'Conditioning',
-      rounds: 2,
-      stations: [
-        { name: 'Jumping Jacks', seconds: 40, restSeconds: 15 },
-        { name: 'Squat Pulses', seconds: 45, restSeconds: 20 },
-      ],
-    },
-  ],
-};
+const defaultGroups = [
+  {
+    name: 'Upper Body',
+    rounds: 3,
+    stations: [
+      { name: 'Push-ups', seconds: 45, restSeconds: 20 },
+      { name: 'Rows', seconds: 45, restSeconds: 20 },
+      { name: 'Plank Hold', seconds: 35, restSeconds: 30 },
+    ],
+  },
+  {
+    name: 'Conditioning',
+    rounds: 2,
+    stations: [
+      { name: 'Jumping Jacks', seconds: 40, restSeconds: 15 },
+      { name: 'Squat Pulses', seconds: 45, restSeconds: 20 },
+    ],
+  },
+];
 
 const state = {
-  workouts: [],
-  selectedWorkoutId: null,
-  groups: [],
+  groups: structuredClone(defaultGroups),
   timeline: [],
   currentIndex: 0,
   running: false,
@@ -39,7 +31,6 @@ const state = {
 const phaseLabelEl = document.getElementById('phase-label');
 const stepNameEl = document.getElementById('step-name');
 const groupMetaEl = document.getElementById('group-meta');
-const activeWorkoutNameEl = document.getElementById('active-workout-name');
 const timeLeftEl = document.getElementById('time-left');
 const stepCountEl = document.getElementById('step-count');
 const progressBarEl = document.getElementById('progress-bar');
@@ -49,12 +40,6 @@ const nextBtn = document.getElementById('next-btn');
 const resetBtn = document.getElementById('reset-btn');
 const addGroupBtn = document.getElementById('add-group-btn');
 const groupListEl = document.getElementById('group-list');
-const workoutSelectEl = document.getElementById('workout-select');
-const newWorkoutNameEl = document.getElementById('new-workout-name');
-const saveAsBtn = document.getElementById('save-as-btn');
-const saveBtn = document.getElementById('save-btn');
-const deleteWorkoutBtn = document.getElementById('delete-workout-btn');
-const startSelectedBtn = document.getElementById('start-selected-btn');
 const groupTemplate = document.getElementById('group-template');
 const stationTemplate = document.getElementById('station-template');
 
@@ -69,62 +54,6 @@ function formatTime(ms) {
   const mins = Math.floor(totalSeconds / 60);
   const secs = totalSeconds % 60;
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-}
-
-function clone(value) {
-  return structuredClone(value);
-}
-
-function activeWorkout() {
-  return state.workouts.find((workout) => workout.id === state.selectedWorkoutId) ?? null;
-}
-
-function ensureWorkoutDataShape(data) {
-  if (!Array.isArray(data) || !data.length) return [clone(defaultWorkout)];
-  return data.map((workout, index) => ({
-    id: typeof workout.id === 'string' ? workout.id : crypto.randomUUID(),
-    name: workout.name || `Workout ${index + 1}`,
-    groups: Array.isArray(workout.groups) && workout.groups.length ? workout.groups : [{
-      name: 'Group 1',
-      rounds: 1,
-      stations: [{ name: 'Station 1', seconds: 30, restSeconds: 15 }],
-    }],
-  }));
-}
-
-function loadWorkouts() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) {
-    state.workouts = [clone(defaultWorkout)];
-    state.selectedWorkoutId = state.workouts[0].id;
-    state.groups = clone(state.workouts[0].groups);
-    persistWorkouts();
-    return;
-  }
-
-  try {
-    const parsed = JSON.parse(raw);
-    state.workouts = ensureWorkoutDataShape(parsed.workouts);
-    state.selectedWorkoutId = parsed.selectedWorkoutId || state.workouts[0].id;
-
-    if (!activeWorkout()) {
-      state.selectedWorkoutId = state.workouts[0].id;
-    }
-
-    state.groups = clone(activeWorkout().groups);
-  } catch {
-    state.workouts = [clone(defaultWorkout)];
-    state.selectedWorkoutId = state.workouts[0].id;
-    state.groups = clone(state.workouts[0].groups);
-    persistWorkouts();
-  }
-}
-
-function persistWorkouts() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    workouts: state.workouts,
-    selectedWorkoutId: state.selectedWorkoutId,
-  }));
 }
 
 function buildTimeline() {
@@ -150,7 +79,7 @@ function buildTimeline() {
         if (restSeconds > 0) {
           timeline.push({
             type: 'rest',
-            name: 'Rest',
+            name: `Rest`,
             seconds: restSeconds,
             groupName: group.name,
             groupIndex,
@@ -168,23 +97,6 @@ function buildTimeline() {
 
 function currentBlock() {
   return state.timeline[state.currentIndex];
-}
-
-function stopTimer() {
-  state.running = false;
-  startBtn.textContent = 'Start';
-  if (state.timerId) {
-    clearInterval(state.timerId);
-    state.timerId = null;
-  }
-}
-
-function setBlock(index) {
-  if (!state.timeline.length) return;
-  state.currentIndex = (index + state.timeline.length) % state.timeline.length;
-  state.remainingMs = currentBlock().seconds * 1000;
-  state.previousTick = performance.now();
-  render();
 }
 
 function clampAndSyncBlock() {
@@ -207,6 +119,14 @@ function clampAndSyncBlock() {
   render();
 }
 
+function setBlock(index) {
+  if (!state.timeline.length) return;
+  state.currentIndex = (index + state.timeline.length) % state.timeline.length;
+  state.remainingMs = currentBlock().seconds * 1000;
+  state.previousTick = performance.now();
+  render();
+}
+
 function tick() {
   if (!state.running || !state.timeline.length) return;
 
@@ -224,6 +144,15 @@ function tick() {
   render();
 }
 
+function stopTimer() {
+  state.running = false;
+  startBtn.textContent = 'Start';
+  if (state.timerId) {
+    clearInterval(state.timerId);
+    state.timerId = null;
+  }
+}
+
 function startTimer() {
   if (!state.timeline.length) return;
   state.running = true;
@@ -238,77 +167,6 @@ function ensureAtLeastOneStation(group) {
   if (!group.stations.length) {
     group.stations.push({ name: 'New station', seconds: 30, restSeconds: 15 });
   }
-}
-
-function renderWorkoutSelector() {
-  workoutSelectEl.innerHTML = '';
-  state.workouts.forEach((workout) => {
-    const option = document.createElement('option');
-    option.value = workout.id;
-    option.textContent = workout.name;
-    if (workout.id === state.selectedWorkoutId) {
-      option.selected = true;
-    }
-    workoutSelectEl.append(option);
-  });
-
-  const current = activeWorkout();
-  activeWorkoutNameEl.textContent = current ? current.name : 'Unknown Workout';
-}
-
-function switchWorkout(workoutId, resetPlayback = true) {
-  const target = state.workouts.find((workout) => workout.id === workoutId);
-  if (!target) return;
-
-  state.selectedWorkoutId = target.id;
-  state.groups = clone(target.groups);
-  if (resetPlayback) {
-    stopTimer();
-    state.currentIndex = 0;
-    state.remainingMs = 0;
-  }
-  clampAndSyncBlock();
-  renderWorkoutSelector();
-  renderEditor();
-  persistWorkouts();
-}
-
-function saveCurrentWorkout() {
-  const target = activeWorkout();
-  if (!target) return;
-  target.groups = clone(state.groups);
-  persistWorkouts();
-  renderWorkoutSelector();
-}
-
-function saveAsNewWorkout() {
-  const rawName = newWorkoutNameEl.value.trim();
-  const name = rawName || `Workout ${state.workouts.length + 1}`;
-
-  const workout = {
-    id: crypto.randomUUID(),
-    name,
-    groups: clone(state.groups),
-  };
-
-  state.workouts.push(workout);
-  newWorkoutNameEl.value = '';
-  switchWorkout(workout.id, true);
-}
-
-function deleteSelectedWorkout() {
-  if (state.workouts.length === 1) {
-    state.workouts[0] = clone(defaultWorkout);
-    switchWorkout(state.workouts[0].id, true);
-    return;
-  }
-
-  const index = state.workouts.findIndex((workout) => workout.id === state.selectedWorkoutId);
-  if (index < 0) return;
-
-  state.workouts.splice(index, 1);
-  const next = state.workouts[Math.max(0, index - 1)];
-  switchWorkout(next.id, true);
 }
 
 function renderEditor() {
@@ -407,9 +265,6 @@ function renderEditor() {
 }
 
 function render() {
-  const workout = activeWorkout();
-  activeWorkoutNameEl.textContent = workout ? workout.name : 'Unknown Workout';
-
   if (!state.timeline.length) {
     phaseLabelEl.textContent = 'No workout configured';
     stepNameEl.textContent = 'Add a group and station';
@@ -437,11 +292,19 @@ function render() {
 }
 
 startBtn.addEventListener('click', () => {
-  if (state.running) stopTimer(); else startTimer();
+  if (state.running) {
+    stopTimer();
+  } else {
+    startTimer();
+  }
 });
+
 prevBtn.addEventListener('click', () => setBlock(state.currentIndex - 1));
 nextBtn.addEventListener('click', () => setBlock(state.currentIndex + 1));
-resetBtn.addEventListener('click', () => { stopTimer(); setBlock(0); });
+resetBtn.addEventListener('click', () => {
+  stopTimer();
+  setBlock(0);
+});
 
 addGroupBtn.addEventListener('click', () => {
   state.groups.push({
@@ -453,33 +316,7 @@ addGroupBtn.addEventListener('click', () => {
   clampAndSyncBlock();
 });
 
-workoutSelectEl.addEventListener('change', (event) => {
-  switchWorkout(event.target.value, true);
-});
-
-saveBtn.addEventListener('click', () => {
-  saveCurrentWorkout();
-});
-
-saveAsBtn.addEventListener('click', () => {
-  saveAsNewWorkout();
-});
-
-deleteWorkoutBtn.addEventListener('click', () => {
-  deleteSelectedWorkout();
-});
-
-startSelectedBtn.addEventListener('click', () => {
-  stopTimer();
-  state.currentIndex = 0;
-  state.remainingMs = 0;
-  clampAndSyncBlock();
-  startTimer();
-});
-
-loadWorkouts();
 buildTimeline();
 state.remainingMs = state.timeline.length ? currentBlock().seconds * 1000 : 0;
-renderWorkoutSelector();
 renderEditor();
 render();
