@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Circuit Flow</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="glass card now-playing">
+        <header>
+          <p class="eyebrow" id="phase-label">Work interval</p>
+          <h1 id="step-name">Push-ups</h1>
+          <p class="group-meta" id="group-meta">Upper Body · Round 1/3</p>
+          <p class="workout-meta">Workout: <span id="active-workout-name">Starter Workout</span></p>
+        </header>
+
+        <div class="timer-wrap">
+          <p class="time" id="time-left">00:45</p>
+          <p class="step-count" id="step-count">1 / 13</p>
+        </div>
+
+        <div class="bar-track" aria-label="Time left">
+          <div class="bar-fill" id="progress-bar"></div>
+        </div>
+
+        <div class="controls">
+          <button id="prev-btn" class="ghost">Prev</button>
+          <button id="start-btn" class="primary">Start</button>
+          <button id="next-btn" class="ghost">Next</button>
+          <button id="reset-btn" class="ghost">Reset</button>
+        </div>
+      </section>
+
+      <section class="glass card editor">
+        <div class="editor-header">
+          <h2>Workout editor</h2>
+          <button id="add-group-btn" class="primary small">Add group</button>
+        </div>
+
+        <div class="library">
+          <div class="library-row">
+            <label class="field-inline grow">
+              Saved workouts
+              <select id="workout-select"></select>
+            </label>
+            <button id="start-selected-btn" class="primary small" type="button">Start selected</button>
+          </div>
+          <div class="library-row">
+            <input id="new-workout-name" type="text" placeholder="New workout name" />
+            <button id="save-as-btn" class="ghost small" type="button">Save as new</button>
+            <button id="save-btn" class="primary small" type="button">Save changes</button>
+            <button id="delete-workout-btn" class="ghost small" type="button">Delete</button>
+          </div>
+        </div>
+
+        <p class="hint">Create groups, set rounds, then tune station time + rest after each station.</p>
+        <div id="group-list" class="group-list"></div>
+      </section>
+    </main>
+
+    <template id="group-template">
+      <article class="group-block">
+        <div class="group-row">
+          <input class="group-name-input" type="text" placeholder="Group name" />
+          <label class="field-inline">
+            Rounds
+            <input class="group-rounds-input" type="number" min="1" />
+          </label>
+          <button class="add-station-btn ghost small" type="button">Add station</button>
+          <button class="delete-group-btn ghost small" type="button">Delete group</button>
+        </div>
+        <div class="station-list"></div>
+      </article>
+    </template>
+
+    <template id="station-template">
+      <div class="station-row">
+        <input class="station-name-input" type="text" placeholder="Station name" />
+        <label class="field-inline compact">
+          Work
+          <input class="station-work-input" type="number" min="5" step="5" />
+        </label>
+        <label class="field-inline compact">
+          Rest
+          <input class="station-rest-input" type="number" min="0" step="5" />
+        </label>
+        <button class="delete-station-btn ghost small" type="button">Delete</button>
+      </div>
+    </template>
+
+    <script src="script.js"></script>
+  </body>
+</html>
